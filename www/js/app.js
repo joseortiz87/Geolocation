@@ -39,40 +39,11 @@ angular.module('starter', ['ionic','ngCordova'])
       maximumAge: 0
   };
   $scope.bgGeo = null;
+  $scope.watchLocation = null;
+  $scope.backgroundLocations = [];
 
-  $scope.registroUbicacion = function(brigadista){
-          var headers = {};
-          headers['Content-Type'] = 'application/json';
-            var request = {
-                  method: 'POST',
-                  url: 'http://voteengineproject-appsjortiz.rhcloud.com/brigadista/ubicacion',
-                  headers: headers,
-                  data: JSON.stringify(brigadista)
-              };
-            return $http(request);
-  };
-
-  $scope.acquiringLocation = function(){
-      /*
-      $ionicLoading.show({
-          template: '<ion-spinner icon="bubbles"></ion-spinner><br/>Acquiring location!'
-      });
-      */
-
-      $cordovaGeolocation.getCurrentPosition($scope.posOptions).then(function (position) {
-          var lat  = position.coords.latitude;
-          var long = position.coords.longitude;
-
-          var myLatlng = new google.maps.LatLng(lat, long);
-
-          var marker = new google.maps.Marker({
-            position: myLatlng,
-            map: $scope.map,
-            title: 'Posicion'
-          });
-          $scope.map.setCenter(myLatlng);
-
-          var brigadistaVO = {
+  $scope.registroUbicacion = function(lat,long){
+          var brigadista = {
             nombreBrigadista : "JOSE ORTIZ SAINZ",
             brigada : "1",
             tipo : "promocion",
@@ -86,24 +57,23 @@ angular.module('starter', ['ionic','ngCordova'])
               }
             ]
           };
-          console.log("brigadistaVO : " + JSON.stringify(brigadistaVO));
-          $scope.registroUbicacion(brigadistaVO);
-
-          $ionicLoading.hide();
-
-      }, function(err) {
-          $ionicLoading.hide();
-          console.log(err);
-      });
+          console.log("brigadistaVO : " + JSON.stringify(brigadista));
+          var headers = {};
+          headers['Content-Type'] = 'application/json';
+            var request = {
+                  method: 'POST',
+                  url: 'http://voteengineproject-appsjortiz.rhcloud.com/brigadista/ubicacion',
+                  headers: headers,
+                  data: JSON.stringify(brigadista)
+              };
+            return $http(request);
   };
 
-  $scope.acquiringLocationBackground = function(location){
-    //console.log('BackgroundGeoLocation callback:  ' + location.latitude + ',' + location.longitude);
-    var lat  = location.latitude;
-    var long = location.longitude;
-
+/*
+SET MARKER IN CURRENT MAP
+*/
+  $scope.setMapMarker = function(lat,long){
     var myLatlng = new google.maps.LatLng(lat, long);
-
     var marker = new google.maps.Marker({
       position: myLatlng,
       map: $scope.map,
@@ -112,8 +82,56 @@ angular.module('starter', ['ionic','ngCordova'])
     $scope.map.setCenter(myLatlng);
   };
 
+  $scope.acquiringLocation = function(){
+      /*
+      $ionicLoading.show({
+          template: '<ion-spinner icon="bubbles"></ion-spinner><br/>Acquiring location!'
+      });
+      */
+
+      $cordovaGeolocation.getCurrentPosition($scope.posOptions).then(function (position) {
+          var lat  = position.coords.latitude;
+          var long = position.coords.longitude;
+
+          $scope.registroUbicacion(lat,long);
+          $ionicLoading.hide();
+
+      }, function(err) {
+          $ionicLoading.hide();
+          console.log(err);
+      });
+  };
+
+  /**
+  BACKGROUND LOCATION
+  */
+  $scope.acquiringLocationBackground = function(location){
+    //console.log('BackgroundGeoLocation callback:  ' + location.latitude + ',' + location.longitude);
+    var lat  = location.latitude;
+    var long = location.longitude;
+
+    $scope.setMapMarker(lat,long);
+    $scope.registroUbicacion(lat,long);
+    $scope.backgroundLocations.push(location);
+
+  };
+
   $scope.acquiringLocationFail = function(error){
     console.log('BackgroundGeoLocation error');
+  };
+
+  /*
+  * WATCH LOCATION
+  */
+  $scope.onWatchLocationSucess = function(position){
+    var lat  = position.coords.latitude;
+    var long = position.coords.longitude;
+    $scope.setMapMarker(lat,long);
+    $scope.registroUbicacion(lat,long);
+  };
+
+  $scope.onWatchLocationError = function(error){
+    console.log("Sin cambio en la posicion.");
   };
 
 /*
@@ -136,32 +154,40 @@ DOM READY
         stopOnTerminate: false // <-- enable this to clear background location settings when the app terminates
     });
 
-    // Play audio function
+    // START LOCATION ACQUIRING
     $scope.play = function() {
-      // Enable background mode while track is playing
+      // Enable background mode
       cordova.plugins.backgroundMode.enable();
       // Called when background mode has been activated
       cordova.plugins.backgroundMode.onactivate = function() {
         // if track was playing resume it
         console.log("BackGroundMode active");
         $scope.bgGeo.start();
+        /*
         $scope.interval = $interval(function() {
             //$scope.acquiringLocation();
 
           }, 500);
+          */
       };
 
       cordova.plugins.backgroundMode.ondeactivate = function() {
         //cordova.plugins.backgroundMode.disable();
-        console.log("BackGroundMode desabled");
+        console.log("BackGroundMode desabled " + JSON.stringify($scope.backgroundLocations));
         $scope.bgGeo.stop();
       };
 
-      // Start preloaded track
+      // Start preloaded
       //$scope.acquiringLocation();
+      /*
       window.navigator.geolocation.getCurrentPosition(function(location) {
-        console.log('Location from Phonegap ' + location);
+        console.log('Location from Phonegap ' + JSON.stringify(location));
       });
+      */
+      $scope.watchLocation = window.navigator.geolocation.watchPosition(
+        $scope.onWatchLocationSucess,
+        $scope.onWatchLocationError,
+        { timeout: 30000 });
     };
 
     // Stop audio function
