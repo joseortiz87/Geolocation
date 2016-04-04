@@ -41,22 +41,20 @@ angular.module('starter', ['ionic','ngCordova'])
   $scope.bgGeo = null;
   $scope.watchLocation = null;
   $scope.backgroundLocations = [];
+  $scope.idUser = "JOSE ORTIZ SAINZ";
 
   $scope.registroUbicacion = function(lat,long){
           var brigadista = {
-            nombreBrigadista : "JOSE ORTIZ SAINZ",
-            brigada : "1",
-            tipo : "promocion",
-            ubicaciones : [
-              {
-                fecha : new Date(),
-                ubicacion : {
-                  lat : lat,
-                  lng : long
-                }
-              }
-            ]
+          	location : {
+          		longitude: long,
+          		recorded_at: new Date(),
+          		latitude: lat,
+          		speed: '0.0',
+          		accuracy: '0.0'
+          	},
+          	id : $scope.idUser
           };
+
           console.log("brigadistaVO : " + JSON.stringify(brigadista));
           var headers = {};
           headers['Content-Type'] = 'application/json';
@@ -80,26 +78,6 @@ SET MARKER IN CURRENT MAP
       title: 'Posicion'
     });
     $scope.map.setCenter(myLatlng);
-  };
-
-  $scope.acquiringLocation = function(){
-      /*
-      $ionicLoading.show({
-          template: '<ion-spinner icon="bubbles"></ion-spinner><br/>Acquiring location!'
-      });
-      */
-
-      $cordovaGeolocation.getCurrentPosition($scope.posOptions).then(function (position) {
-          var lat  = position.coords.latitude;
-          var long = position.coords.longitude;
-
-          $scope.registroUbicacion(lat,long);
-          $ionicLoading.hide();
-
-      }, function(err) {
-          $ionicLoading.hide();
-          console.log(err);
-      });
   };
 
   /**
@@ -128,6 +106,7 @@ SET MARKER IN CURRENT MAP
   $scope.onWatchLocationSucess = function(position){
     var lat  = position.coords.latitude;
     var long = position.coords.longitude;
+    console.log("position " + JSON.stringify(position));
     $scope.setMapMarker(lat,long);
     $scope.registroUbicacion(lat,long);
   };
@@ -148,7 +127,7 @@ DOM READY
     $scope.bgGeo.configure($scope.acquiringLocationBackground, $scope.acquiringLocationFail, {
         url : "http://voteengineproject-appsjortiz.rhcloud.com/brigadista/ubicacion",
         params: {
-            nombreBrigadista : "JOSE ORTIZ SAINZ"
+            id : $scope.idUser
         },
         desiredAccuracy: 10,
         stationaryRadius: 20,
@@ -177,12 +156,17 @@ DOM READY
         //$scope.bgGeo.stop();
       };
 
-      //WATCH FOR LOCATION CHANGES
-      $scope.watchLocation = window.navigator.geolocation.watchPosition(
-        $scope.onWatchLocationSucess,
-        $scope.onWatchLocationError,
-        { timeout: 30000 });
-      $scope.bgGeo.start();
+      window.navigator.geolocation.getCurrentPosition(function(posicion){
+        console.log("Fist location...");
+        //WATCH FOR LOCATION CHANGES
+        $scope.watchLocation = window.navigator.geolocation.watchPosition(
+          $scope.onWatchLocationSucess,
+          $scope.onWatchLocationError,
+          { timeout: 30000 });
+        $scope.bgGeo.start();
+      }, function(){
+        console.log("Error first location...");
+      });
     };
 
     // Stop audio function
