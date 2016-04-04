@@ -105,14 +105,16 @@ SET MARKER IN CURRENT MAP
   /**
   BACKGROUND LOCATION
   */
-  $scope.acquiringLocationBackground = function(location){
-    //console.log('BackgroundGeoLocation callback:  ' + location.latitude + ',' + location.longitude);
-    var lat  = location.latitude;
-    var long = location.longitude;
+  $scope.locationAjaxCallback = function(response){
+    $scope.bgGeo.finish();
+  };
 
-    $scope.setMapMarker(lat,long);
-    $scope.registroUbicacion(lat,long);
-    $scope.backgroundLocations.push(location);
+  $scope.acquiringLocationBackground = function(location){
+    console.log('BackgroundGeoLocation callback:  ' + location.latitude + ',' + location.longitude);
+    //var lat  = location.latitude;
+    //var long = location.longitude;
+
+    $scope.locationAjaxCallback.call(this);
 
   };
 
@@ -144,13 +146,17 @@ DOM READY
     $scope.bgGeo = window.plugins.backgroundGeoLocation;
 
     $scope.bgGeo.configure($scope.acquiringLocationBackground, $scope.acquiringLocationFail, {
+        url : "http://voteengineproject-appsjortiz.rhcloud.com/brigadista/ubicacion",
+        params: {
+            nombreBrigadista : "JOSE ORTIZ SAINZ"
+        },
         desiredAccuracy: 10,
         stationaryRadius: 20,
         distanceFilter: 30,
         notificationTitle: 'Background tracking', // <-- android only, customize the title of the notification
         notificationText: 'ENABLED', // <-- android only, customize the text of the notification
         activityType: 'AutomotiveNavigation',
-        debug: false, // <-- enable this hear sounds for background-geolocation life-cycle.
+        debug: true, // <-- enable this hear sounds for background-geolocation life-cycle.
         stopOnTerminate: false // <-- enable this to clear background location settings when the app terminates
     });
 
@@ -162,32 +168,21 @@ DOM READY
       cordova.plugins.backgroundMode.onactivate = function() {
         // if track was playing resume it
         console.log("BackGroundMode active");
-        $scope.bgGeo.start();
-        /*
-        $scope.interval = $interval(function() {
-            //$scope.acquiringLocation();
 
-          }, 500);
-          */
       };
 
       cordova.plugins.backgroundMode.ondeactivate = function() {
         //cordova.plugins.backgroundMode.disable();
         console.log("BackGroundMode desabled " + JSON.stringify($scope.backgroundLocations));
-        $scope.bgGeo.stop();
+        //$scope.bgGeo.stop();
       };
 
-      // Start preloaded
-      //$scope.acquiringLocation();
-      /*
-      window.navigator.geolocation.getCurrentPosition(function(location) {
-        console.log('Location from Phonegap ' + JSON.stringify(location));
-      });
-      */
+      //WATCH FOR LOCATION CHANGES
       $scope.watchLocation = window.navigator.geolocation.watchPosition(
         $scope.onWatchLocationSucess,
         $scope.onWatchLocationError,
         { timeout: 30000 });
+      $scope.bgGeo.start();
     };
 
     // Stop audio function
