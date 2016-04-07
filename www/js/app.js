@@ -23,7 +23,7 @@ angular.module('starter', ['ionic','ngCordova'])
   });
 })
 
-.controller('BackgroundController', function($scope, $cordovaGeolocation, $ionicLoading, $ionicPlatform, $interval, $http) {
+.controller('BackgroundController', function($scope, $cordovaGeolocation, $ionicLoading, $ionicPlatform, $interval, $http, $cordovaDevice) {
 
   $scope.map =  null;
   $scope.interval = null;
@@ -42,27 +42,17 @@ angular.module('starter', ['ionic','ngCordova'])
   $scope.watchLocation = null;
   $scope.backgroundLocations = [];
   $scope.idUser = "JOSE ORTIZ SAINZ";
+  $scope.uuid = null;
 
-  $scope.registroUbicacion = function(lat,long){
-          var brigadista = {
-          	location : {
-          		longitude: long,
-          		recorded_at: new Date(),
-          		latitude: lat,
-          		speed: '0.0',
-          		accuracy: '0.0'
-          	},
-          	id : $scope.idUser
-          };
-
-          console.log("brigadistaVO : " + JSON.stringify(brigadista));
+  $scope.registroUbicacion = function(location){
+          console.log("Se registra ubicacion : " + JSON.stringify(location));
           var headers = {};
           headers['Content-Type'] = 'application/json';
             var request = {
                   method: 'POST',
-                  url: 'http://voteengineproject-appsjortiz.rhcloud.com/brigadista/ubicacion',
+                  url: 'http://voteengineproject-appsjortiz.rhcloud.com/brigadista/ubicacion/' + $scope.uuid,
                   headers: headers,
-                  data: JSON.stringify(brigadista)
+                  data: JSON.stringify(location)
               };
             return $http(request);
   };
@@ -80,26 +70,6 @@ SET MARKER IN CURRENT MAP
     $scope.map.setCenter(myLatlng);
   };
 
-  /**
-  BACKGROUND LOCATION
-  */
-  $scope.locationAjaxCallback = function(response){
-    $scope.bgGeo.finish();
-  };
-
-  $scope.acquiringLocationBackground = function(location){
-    console.log('BackgroundGeoLocation callback:  ' + location.latitude + ',' + location.longitude);
-    //var lat  = location.latitude;
-    //var long = location.longitude;
-
-    $scope.locationAjaxCallback.call(this);
-
-  };
-
-  $scope.acquiringLocationFail = function(error){
-    console.log('BackgroundGeoLocation error');
-  };
-
   /*
   * WATCH LOCATION
   */
@@ -108,7 +78,18 @@ SET MARKER IN CURRENT MAP
     var long = position.coords.longitude;
     console.log("position " + JSON.stringify(position));
     $scope.setMapMarker(lat,long);
-    $scope.registroUbicacion(lat,long);
+    var location = {
+      location : {
+        longitude: long,
+        timestamp: new Date().getTime(),
+        latitude: lat,
+        speed: 0.0,
+        accuracy: 0.0,
+        altitude : 0.0,
+        heading: 0.0
+      }
+    };
+    $scope.registroUbicacion(location);
   };
 
   $scope.onWatchLocationError = function(error){
@@ -122,61 +103,69 @@ DOM READY
 
     console.log("Loading ready...");
     $scope.map = new google.maps.Map(document.getElementById("map"), $scope.mapOptions);
-    $scope.bgGeo = window.plugins.backgroundGeoLocation;
+    window.navigator.geolocation.getCurrentPosition(function(position){
+      console.log("First location - " + JSON.stringify(position));
+    });
 
-    $scope.bgGeo.configure($scope.acquiringLocationBackground, $scope.acquiringLocationFail, {
-        url : "http://voteengineproject-appsjortiz.rhcloud.com/brigadista/ubicacion/1",
-        desiredAccuracy: 10,
-        stationaryRadius: 1,
-        distanceFilter: 1,
-        notificationTitle: 'Background tracking', // <-- android only, customize the title of the notification
-        notificationText: 'ENABLED', // <-- android only, customize the text of the notification
-        activityType: 'AutomotiveNavigation',
-        debug: true, // <-- enable this hear sounds for background-geolocation life-cycle.
-        stopOnTerminate: false // <-- enable this to clear background location settings when the app terminates
+    $scope.uuid = $cordovaDevice.getUUID();
+    console.log("UUID - " + $scope.uuid);
+
+    //Get plugin
+    $scope.bgLocationServices =  window.plugins.backgroundLocationServices;
+
+    //Congfigure Plugin
+    $scope.bgLocationServices.configure({
+     //Both
+     desiredAccuracy: 1, // Desired Accuracy of the location updates (lower means more accurate but more battery consumption)
+     distanceFilter: 1, // (Meters) How far you must move from the last point to trigger a location update
+     debug: true, // <-- Enable to show visual indications when you receive a background location update
+     interval: 5000, // (Milliseconds) Requested Interval in between location updates.
+     //Android Only
+     notificationTitle: 'BG Plugin', // customize the title of the notification
+     notificationText: 'Tracking', //customize the text of the notification
+     fastestInterval: 5000, // <-- (Milliseconds) Fastest interval your app / server can handle updates
+     useActivityDetection: true // Uses Activitiy detection to shut off gps when you are still (Greatly enhances Battery Life)
+    });
+
+    //Register a callback for location updates, this is where location objects will be sent in the background
+    $scope.bgLocationServices.registerForLocationUpdates(function(location) {
+         console.log("We got an BG Update" + JSON.stringify(location));
+         $scope.setMapMarker(location.latitude,location.longitude);
+         $scope.registroUbicacion(location);
+    }, function(err) {
+         console.log("Error: Didnt get an update", err);
+    });
+
+    //Register for Activity Updates (ANDROID ONLY)
+    //Uses the Detected Activies API to send back an array of activities and their confidence levels
+    //See here for more information: //https://developers.google.com/android/reference/com/google/android/gms/location/DetectedActivity
+    $scope.bgLocationServices.registerForActivityUpdates(function(acitivites) {
+         console.log("We got an BG Update" + activities);
+    }, function(err) {
+         console.log("Error: Something went wrong", err);
     });
 
     // START LOCATION ACQUIRING
     $scope.play = function() {
       // Enable background mode
-      cordova.plugins.backgroundMode.enable();
-      // Called when background mode has been activated
-      cordova.plugins.backgroundMode.onactivate = function() {
-        // if track was playing resume it
-        console.log("BackGroundMode active");
-        $scope.bgGeo.start();
-      };
+      console.log("Start");
+      //Start the Background Tracker. When you enter the background tracking will start, and stop when you enter the foreground.
+      $scope.bgLocationServices.start();
 
-      cordova.plugins.backgroundMode.ondeactivate = function() {
-        //cordova.plugins.backgroundMode.disable();
-        console.log("BackGroundMode desabled " + JSON.stringify($scope.backgroundLocations));
-        //$scope.bgGeo.stop();
-      };
-
-      window.navigator.geolocation.getCurrentPosition(function(posicion){
-        console.log("Fist location...");
-        //WATCH FOR LOCATION CHANGES
-        /*
-        $scope.watchLocation = window.navigator.geolocation.watchPosition(
+      //WATCH FOR LOCATION CHANGES
+      $scope.watchLocation = window.navigator.geolocation.watchPosition(
           $scope.onWatchLocationSucess,
           $scope.onWatchLocationError,
           { timeout: 30000 });
-          */
-        $scope.bgGeo.start();
-      }, function(){
-        console.log("Error first location...");
-      });
     };
 
     // Stop audio function
     $scope.stop = function() {
       // Stop preloaded track
       console.log("Stop");
-      if($scope.interval){
-        $interval.cancel($scope.interval);
-        $scope.interval = null;
-      }
-      //cordova.plugins.backgroundMode.disable();
+      ///later, to stop
+      $scope.bgLocationServices.stop();
+      $scope.watchLocation.clearWatch();
     };
 
   });
