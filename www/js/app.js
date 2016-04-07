@@ -125,13 +125,10 @@ DOM READY
     $scope.bgGeo = window.plugins.backgroundGeoLocation;
 
     $scope.bgGeo.configure($scope.acquiringLocationBackground, $scope.acquiringLocationFail, {
-        url : "http://voteengineproject-appsjortiz.rhcloud.com/brigadista/ubicacion",
-        params: {
-            id : $scope.idUser
-        },
+        url : "http://voteengineproject-appsjortiz.rhcloud.com/brigadista/ubicacion/1",
         desiredAccuracy: 10,
-        stationaryRadius: 20,
-        distanceFilter: 30,
+        stationaryRadius: 1,
+        distanceFilter: 1,
         notificationTitle: 'Background tracking', // <-- android only, customize the title of the notification
         notificationText: 'ENABLED', // <-- android only, customize the text of the notification
         activityType: 'AutomotiveNavigation',
@@ -147,7 +144,7 @@ DOM READY
       cordova.plugins.backgroundMode.onactivate = function() {
         // if track was playing resume it
         console.log("BackGroundMode active");
-
+        $scope.bgGeo.start();
       };
 
       cordova.plugins.backgroundMode.ondeactivate = function() {
@@ -159,10 +156,12 @@ DOM READY
       window.navigator.geolocation.getCurrentPosition(function(posicion){
         console.log("Fist location...");
         //WATCH FOR LOCATION CHANGES
+        /*
         $scope.watchLocation = window.navigator.geolocation.watchPosition(
           $scope.onWatchLocationSucess,
           $scope.onWatchLocationError,
           { timeout: 30000 });
+          */
         $scope.bgGeo.start();
       }, function(){
         console.log("Error first location...");
