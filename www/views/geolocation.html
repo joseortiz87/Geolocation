@@ -1,0 +1,19 @@
+<ion-view>
+  <ion-content>
+    <ion-pane>
+      <ion-header-bar class="bar-stable">
+        <h1 class="title">Brigadas</h1>
+      </ion-header-bar>
+      <ion-content class="home" ng-controller="BackgroundController">
+        <button class="button button-full button-positive" ng-click="play()">
+          Start
+        </button>
+        <button class="button button-full button-positive" ng-click="stop()">
+          Stop
+        </button>
+        <div id="map" data-tap-disabled="true"></div>
+      </ion-content>
+    </ion-pane>
+    <script src="https://maps-api-ssl.google.com/maps/api/js?libraries=places"></script>
+  </ion-content>
+</ion-view>

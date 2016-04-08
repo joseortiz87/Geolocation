@@ -1,0 +1,18 @@
+<ion-view>
+  <ion-content ng-controller="LoginCtrl">
+    <form name="singInForm" ng-submit="doLogin()" class="center-text" >
+      <div class="list list-inset">
+        <label class="item item-input" ng-class="{ 'has-error' : singInForm.nombreBrigadista.$dirty && singInForm.nombreBrigadista.$invalid}">
+          <input type="text" name="nombreBrigadista" ng-model="singUpData.nombreBrigadista" placeholder="Nombre" required="required">
+        </label>
+        <label class="item item-input" ng-class="{ 'has-error' : singInForm.brigada.$dirty && singInForm.brigada.$invalid}">
+          <input type="text" name="brigada" ng-model="singUpData.brigada" placeholder="Brigada" required="required">
+        </label>
+        <label class="item item-input" ng-class="{ 'has-error' : singInForm.tipo.$dirty && singInForm.tipo.$invalid}">
+          <input type="text" name="tipo" ng-model="singUpData.tipo" placeholder="Tipo" required="required">
+        </label>
+        <button class="button eighty-percent-width" type="submit" ng-disabled="singInForm.$invalid">Registrar</button>
+      </div>
+    </form>
+  </ion-content>
+</ion-view>
