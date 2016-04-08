@@ -1,28 +1,18 @@
-angular.module('starter.controllers', [])
+angular.module('starter.controllers', ['ngCordova'])
 
 /*
 login
 */
 .controller('LoginCtrl', function($scope, $ionicPopup, $ionicLoading, $state, $q, $rootScope, $http, $cordovaDevice,$ionicPlatform){
-      $rootScope.loginData = {};
+      $rootScope.singUpData = {};
       $rootScope.uuid = null;
 
-      /*
-      DOM READY
-      */
-        $ionicPlatform.ready(function() {
-          console.log('LoginCtrl ready...');
-          $cordovaDevice.getUUID();
-        });
-
-
-
       $scope.isAuthenticated = function(){
-        if($rootScope.loginData){
+        if($rootScope.singUpData){
             return true;
         }else if(window.localStorage.getItem("auth")){
             console.log("Auth from LocalStorage " + JSON.stringify(window.localStorage.getItem("auth")));
-            $rootScope.loginData = JSON.parse(window.localStorage.getItem("auth"));
+            $rootScope.singUpData = JSON.parse(window.localStorage.getItem("auth"));
             return true;
         }
         return false;
@@ -57,12 +47,57 @@ login
        };
 
       $scope.doLogin = function(){
-        console.log("Login data - " + $rootScope.loginData);
+        console.log("Login data - " + $rootScope.singUpData);
         console.log("UUID - " + $rootScope.uuid);
         //$scope.showLoading();
-        window.localStorage.setItem("auth",JSON.stringify($rootScope.uuid));
-        $state.go('app');
+        var brigadista = {
+          trackerId : $rootScope.uuid,
+          nombreBrigadista : $rootScope.singUpData.nombreBrigadista,
+	        brigada : $rootScope.singUpData.brigada,
+          tipo : $rootScope.singUpData.tipo,
+          ubicaciones : [
+            {
+              longitude: 0.0,
+              timestamp: new Date().getTime(),
+              latitude: 0.0,
+              speed: 0.0,
+              accuracy: 0.0,
+              altitude : 0.0,
+              heading: 0.0
+            }
+          ]
+        };
+        var headers = {};
+        headers['Content-Type'] = 'application/json';
+          var request = {
+                method: 'POST',
+                url: 'http://voteengineproject-appsjortiz.rhcloud.com/brigadista/registro/' + $rootScope.uuid,
+                headers: headers,
+                data: JSON.stringify(brigadista)
+            };
+        $http(request).success(function(data){
+            console.log("Respuesta registro tracker - " + JSON.stringify(data));
+            if(data.code != -1){
+              window.localStorage.setItem("auth",JSON.stringify($rootScope.singUpData));
+              $state.go('app');
+            }
+        }).error(function(error){
+            console.log("Error de registro tracker - " + JSON.stringify(error));
+        });
       };
+
+      /*
+      DOM READY
+      */
+      $ionicPlatform.ready(function() {
+          console.log('LoginCtrl ready...');
+          try{
+            $rootScope.uuid = $cordovaDevice.getUUID();
+            console.log("TRACKER ID - " + $rootScope.uuid);
+          }catch(exeption){
+
+          }
+      });
 
 })
 
@@ -157,55 +192,59 @@ DOM READY
     $scope.uuid = $cordovaDevice.getUUID();
     console.log("UUID - " + $scope.uuid);
 
-    //Get plugin
-    $scope.bgLocationServices =  window.plugins.backgroundLocationServices;
+    $scope.initBackGroundGeoLocation = function(){
 
-    //Congfigure Plugin
-    $scope.bgLocationServices.configure({
-     //Both
-     desiredAccuracy: 1, // Desired Accuracy of the location updates (lower means more accurate but more battery consumption)
-     distanceFilter: 1, // (Meters) How far you must move from the last point to trigger a location update
-     debug: true, // <-- Enable to show visual indications when you receive a background location update
-     interval: 5000, // (Milliseconds) Requested Interval in between location updates.
-     //Android Only
-     notificationTitle: 'BG Plugin', // customize the title of the notification
-     notificationText: 'Tracking', //customize the text of the notification
-     fastestInterval: 5000, // <-- (Milliseconds) Fastest interval your app / server can handle updates
-     useActivityDetection: true // Uses Activitiy detection to shut off gps when you are still (Greatly enhances Battery Life)
-    });
+          //Get plugin
+          $scope.bgLocationServices =  window.plugins.backgroundLocationServices;
 
-    //Register a callback for location updates, this is where location objects will be sent in the background
-    /**RESPONSE
-      {"latitude":19.3589715,
-      "longitude":-99.1692521,
-      "accuracy":161.41400146484375,
-      "altitude":0,
-      "timestamp":1460080345179,
-      "speed":0,
-      "heading":0}
-    */
-    $scope.bgLocationServices.registerForLocationUpdates(function(location) {
-         console.log("Location Update backgound" + JSON.stringify(location));
-         $scope.setMapMarker(location.latitude,location.longitude);
-         $scope.registroUbicacion({location : location});
-    }, function(err) {
-         console.log("Error: Didnt get an update", err);
-    });
+          //Congfigure Plugin
+          $scope.bgLocationServices.configure({
+           //Both
+           desiredAccuracy: 10, // Desired Accuracy of the location updates (lower means more accurate but more battery consumption)
+           distanceFilter: 10, // (Meters) How far you must move from the last point to trigger a location update
+           debug: true, // <-- Enable to show visual indications when you receive a background location update
+           interval: 5000, // (Milliseconds) Requested Interval in between location updates.
+           //Android Only
+           notificationTitle: 'Localización', // customize the title of the notification
+           notificationText: 'ACTIVA', //customize the text of the notification
+           fastestInterval: 5000, // <-- (Milliseconds) Fastest interval your app / server can handle updates
+           useActivityDetection: true // Uses Activitiy detection to shut off gps when you are still (Greatly enhances Battery Life)
+          });
 
-    //Register for Activity Updates (ANDROID ONLY)
-    //Uses the Detected Activies API to send back an array of activities and their confidence levels
-    //See here for more information: //https://developers.google.com/android/reference/com/google/android/gms/location/DetectedActivity
-    $scope.bgLocationServices.registerForActivityUpdates(function(acitivites) {
-         console.log("We got an BG Update" + activities);
-    }, function(err) {
-         console.log("Error: Something went wrong", err);
-    });
+          //Register a callback for location updates, this is where location objects will be sent in the background
+          /**RESPONSE
+            {"latitude":19.3589715,
+            "longitude":-99.1692521,
+            "accuracy":161.41400146484375,
+            "altitude":0,
+            "timestamp":1460080345179,
+            "speed":0,
+            "heading":0}
+          */
+          $scope.bgLocationServices.registerForLocationUpdates(function(location) {
+               console.log("Location Update backgound" + JSON.stringify(location));
+               $scope.setMapMarker(location.latitude,location.longitude);
+               $scope.registroUbicacion({location : location});
+          }, function(err) {
+               console.log("Error: Didnt get an update", err);
+          });
+
+          //Register for Activity Updates (ANDROID ONLY)
+          //Uses the Detected Activies API to send back an array of activities and their confidence levels
+          //See here for more information: //https://developers.google.com/android/reference/com/google/android/gms/location/DetectedActivity
+          $scope.bgLocationServices.registerForActivityUpdates(function(acitivites) {
+               console.log("We got an BG Update" + activities);
+          }, function(err) {
+               console.log("Error: Something went wrong", err);
+          });
+    };
 
     // START LOCATION ACQUIRING
     $scope.play = function() {
       // Enable background mode
       console.log("Start");
       //Start the Background Tracker. When you enter the background tracking will start, and stop when you enter the foreground.
+      $scope.initBackGroundGeoLocation();
       $scope.bgLocationServices.start();
 
       //WATCH FOR LOCATION CHANGES

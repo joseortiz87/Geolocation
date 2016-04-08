@@ -54,7 +54,6 @@ $urlRouterProvider.otherwise('/');
 
   .state('app', {
     url: "/app",
-    abstract: true,
     templateUrl: "views/geolocation.html",
     controller: 'BackgroundController'
   })

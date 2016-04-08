@@ -7,3 +7,7 @@
 .scroll {
     height: 100%;
 }
+
+.has-error{
+	border-bottom: 2px solid red;
+}
