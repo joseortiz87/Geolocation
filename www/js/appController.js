@@ -192,59 +192,55 @@ DOM READY
     $scope.uuid = $cordovaDevice.getUUID();
     console.log("UUID - " + $scope.uuid);
 
-    $scope.initBackGroundGeoLocation = function(){
+    //Get plugin
+    $scope.bgLocationServices =  window.plugins.backgroundLocationServices;
 
-          //Get plugin
-          $scope.bgLocationServices =  window.plugins.backgroundLocationServices;
+    //Congfigure Plugin
+    $scope.bgLocationServices.configure({
+     //Both
+     desiredAccuracy: 10, // Desired Accuracy of the location updates (lower means more accurate but more battery consumption)
+     distanceFilter: 10, // (Meters) How far you must move from the last point to trigger a location update
+     debug: true, // <-- Enable to show visual indications when you receive a background location update
+     interval: 5000, // (Milliseconds) Requested Interval in between location updates.
+     //Android Only
+     notificationTitle: 'Localización', // customize the title of the notification
+     notificationText: 'ACTIVA', //customize the text of the notification
+     fastestInterval: 5000, // <-- (Milliseconds) Fastest interval your app / server can handle updates
+     useActivityDetection: true // Uses Activitiy detection to shut off gps when you are still (Greatly enhances Battery Life)
+    });
 
-          //Congfigure Plugin
-          $scope.bgLocationServices.configure({
-           //Both
-           desiredAccuracy: 10, // Desired Accuracy of the location updates (lower means more accurate but more battery consumption)
-           distanceFilter: 10, // (Meters) How far you must move from the last point to trigger a location update
-           debug: true, // <-- Enable to show visual indications when you receive a background location update
-           interval: 5000, // (Milliseconds) Requested Interval in between location updates.
-           //Android Only
-           notificationTitle: 'Localización', // customize the title of the notification
-           notificationText: 'ACTIVA', //customize the text of the notification
-           fastestInterval: 5000, // <-- (Milliseconds) Fastest interval your app / server can handle updates
-           useActivityDetection: true // Uses Activitiy detection to shut off gps when you are still (Greatly enhances Battery Life)
-          });
+    //Register a callback for location updates, this is where location objects will be sent in the background
+    /**RESPONSE
+      {"latitude":19.3589715,
+      "longitude":-99.1692521,
+      "accuracy":161.41400146484375,
+      "altitude":0,
+      "timestamp":1460080345179,
+      "speed":0,
+      "heading":0}
+    */
+    $scope.bgLocationServices.registerForLocationUpdates(function(location) {
+         console.log("Location Update backgound" + JSON.stringify(location));
+         $scope.setMapMarker(location.latitude,location.longitude);
+         $scope.registroUbicacion({location : location});
+    }, function(err) {
+         console.log("Error: Didnt get an update", err);
+    });
 
-          //Register a callback for location updates, this is where location objects will be sent in the background
-          /**RESPONSE
-            {"latitude":19.3589715,
-            "longitude":-99.1692521,
-            "accuracy":161.41400146484375,
-            "altitude":0,
-            "timestamp":1460080345179,
-            "speed":0,
-            "heading":0}
-          */
-          $scope.bgLocationServices.registerForLocationUpdates(function(location) {
-               console.log("Location Update backgound" + JSON.stringify(location));
-               $scope.setMapMarker(location.latitude,location.longitude);
-               $scope.registroUbicacion({location : location});
-          }, function(err) {
-               console.log("Error: Didnt get an update", err);
-          });
-
-          //Register for Activity Updates (ANDROID ONLY)
-          //Uses the Detected Activies API to send back an array of activities and their confidence levels
-          //See here for more information: //https://developers.google.com/android/reference/com/google/android/gms/location/DetectedActivity
-          $scope.bgLocationServices.registerForActivityUpdates(function(acitivites) {
-               console.log("We got an BG Update" + activities);
-          }, function(err) {
-               console.log("Error: Something went wrong", err);
-          });
-    };
+    //Register for Activity Updates (ANDROID ONLY)
+    //Uses the Detected Activies API to send back an array of activities and their confidence levels
+    //See here for more information: //https://developers.google.com/android/reference/com/google/android/gms/location/DetectedActivity
+    $scope.bgLocationServices.registerForActivityUpdates(function(acitivites) {
+         console.log("We got an BG Update" + activities);
+    }, function(err) {
+         console.log("Error: Something went wrong", err);
+    });
 
     // START LOCATION ACQUIRING
     $scope.play = function() {
       // Enable background mode
       console.log("Start");
       //Start the Background Tracker. When you enter the background tracking will start, and stop when you enter the foreground.
-      $scope.initBackGroundGeoLocation();
       $scope.bgLocationServices.start();
 
       //WATCH FOR LOCATION CHANGES
