@@ -53,9 +53,9 @@ login
         //$scope.showLoading();
         var brigadista = {
           trackerId : $rootScope.uuid,
-          nombreBrigadista : $scope.trackerData.nombreBrigadista,
-	        brigada : $scope.trackerData.brigada,
-          tipo : $scope.trackerData.tipo,
+          nombreBrigadista : $scope.trackerData.nombreBrigadista.toUpperCase(),
+	        brigada : $scope.trackerData.brigada.toUpperCase(),
+          tipo : $scope.trackerData.tipo.toUpperCase(),
           ubicaciones : [
             {
               longitude: 0.0,
