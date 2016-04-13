@@ -4,8 +4,9 @@ angular.module('starter.controllers', ['ngCordova'])
 login
 */
 .controller('LoginCtrl', function($scope, $ionicPopup, $ionicLoading, $state, $q, $rootScope, $http, $cordovaDevice,$ionicPlatform){
-      $rootScope.singUpData = {};
+      $rootScope.singUpData = null;
       $rootScope.uuid = null;
+      $scope.trackerData = {};
 
       $scope.isAuthenticated = function(){
         if($rootScope.singUpData){
@@ -47,14 +48,14 @@ login
        };
 
       $scope.doLogin = function(){
-        console.log("Login data - " + $rootScope.singUpData);
+        console.log("Login data - " + $scope.trackerData);
         console.log("UUID - " + $rootScope.uuid);
         //$scope.showLoading();
         var brigadista = {
           trackerId : $rootScope.uuid,
-          nombreBrigadista : $rootScope.singUpData.nombreBrigadista,
-	        brigada : $rootScope.singUpData.brigada,
-          tipo : $rootScope.singUpData.tipo,
+          nombreBrigadista : $scope.trackerData.nombreBrigadista,
+	        brigada : $scope.trackerData.brigada,
+          tipo : $scope.trackerData.tipo,
           ubicaciones : [
             {
               longitude: 0.0,
@@ -78,7 +79,7 @@ login
         $http(request).success(function(data){
             console.log("Respuesta registro tracker - " + JSON.stringify(data));
             if(data.code != -1){
-              window.localStorage.setItem("auth",JSON.stringify($rootScope.singUpData));
+              window.localStorage.setItem("auth",JSON.stringify($scope.trackerData));
               $state.go('app');
             }
         }).error(function(error){
@@ -121,6 +122,13 @@ login
   $scope.backgroundLocations = [];
   $scope.idUser = "JOSE ORTIZ SAINZ";
   $scope.uuid = null;
+  $scope.lastPoint = null;
+
+  $scope.lineSymbol = {
+    path: 'M 0,-1 0,1',
+    strokeOpacity: 1,
+    scale: 4
+  };
 
   $scope.registroUbicacion = function(location){
           console.log("Se registra ubicacion : " + JSON.stringify(location));
@@ -144,12 +152,37 @@ SET MARKER IN CURRENT MAP
 */
   $scope.setMapMarker = function(lat,long){
     var myLatlng = new google.maps.LatLng(lat, long);
-    var marker = new google.maps.Marker({
-      position: myLatlng,
-      map: $scope.map,
-      title: 'Posicion'
-    });
+    if($scope.lastPoint){
+      var line = new google.maps.Polyline({
+        path: [$scope.lastPoint, {lat : lat , lng : long}],
+        strokeOpacity: 0,
+        icons: [{
+          icon: $scope.lineSymbol,
+          offset: '0',
+          repeat: '20px'
+        }],
+        map: $scope.map
+      });
+    }else{
+      var marker = new google.maps.Marker({
+        position: myLatlng,
+        map: $scope.map,
+        label: 'A'
+      });
+    }
+
+    var circle = new google.maps.Circle({
+					      strokeColor: "#0d904f",
+					      strokeOpacity: 0.9,
+					      strokeWeight: 2,
+					      fillColor: "#0d904f",
+					      fillOpacity: 0.9,
+					      map: $scope.map,
+					      center: {lat : lat , lng : long},
+					      radius: 10
+		});
     $scope.map.setCenter(myLatlng);
+    $scope.lastPoint = {lat : lat , lng : long};
   };
 
   /*
@@ -256,7 +289,7 @@ DOM READY
       console.log("Stop");
       ///later, to stop
       $scope.bgLocationServices.stop();
-      $scope.watchLocation.clearWatch();
+      window.navigator.geolocation.clearWatch($scope.watchLocation);
     };
 
   });
